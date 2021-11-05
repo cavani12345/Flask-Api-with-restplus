@@ -1,4 +1,4 @@
-from flask.globals import request
+from flask.globals import request, session
 from flask.json import jsonify
 import werkzeug
 werkzeug.cached_property = werkzeug.utils.cached_property
@@ -128,6 +128,14 @@ class Products(Resource):
 
     @token_required
     def get(self):
+        token1 = session['token']
+        token2 = token = request.headers['Authorization']
+        r_token = token.split(" ")[1]
+        
+        if not token1 == r_token:
+            return jsonify({
+                'message':'invalid token supplied'
+            })   
 
         products = Product.query.all()
         return jsonify(products_schema.dump(products))
@@ -213,6 +221,8 @@ class Authentication(Resource):
         if(user):
             if user.password == passowrd:
                 token = jwt.encode({'public_id': user.public_id, 'exp' : datetime.datetime.utcnow() + datetime.timedelta(minutes=30)}, app.config['SECRET_KEY'])  
+                
+                session['token'] = token
                 return jsonify({'token' : token}) 
             return jsonify({
                 'message':'Password does not match'
